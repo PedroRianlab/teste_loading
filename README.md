@@ -1,4 +1,4 @@
-﻿# Central de Solicitações
+# Central de Solicitações
 
 Monorepositório npm com Next.js, API NestJS e PostgreSQL. Os requisitos estão em [docs/Loading_Full_Stack.pdf](docs/Loading_Full_Stack.pdf).
 
@@ -9,7 +9,7 @@ Monorepositório npm com Next.js, API NestJS e PostgreSQL. Os requisitos estão 
 - `back-end/prisma`: esquema do banco e futuras migrações.
 - `compose.yaml`: PostgreSQL para desenvolvimento.
 
-A API oferece `GET /`, que retorna `{"status":"ok"}` sem verificar o banco. Os requisitos funcionais do documento ainda não estão implementados.
+A API oferece `GET /`, que retorna `{"status":"ok"}` sem verificar o banco. Os requisitos da API estão descritos abaixo; a interface de solicitações ainda não está implementada.
 
 ## Desenvolvimento
 
@@ -27,3 +27,31 @@ A API responde em http://localhost:3000 e o front-end em http://localhost:3001. 
 
 Este projeto contou com auxílio de inteligência artificial na organização inicial e documentação.
 
+
+## API de solicitações
+
+A API implementa cadastro, listagem, consulta, edição, exclusão e avanço de status. A interface ainda não está integrada. Aplique a migração versionada antes de iniciar a API: `npm run prisma:migrate -w @cofre/api` (ou `npx prisma migrate deploy` dentro de `back-end` para aplicar sem criar migrações).
+
+| Método e rota | Operação |
+| --- | --- |
+| `POST /solicitacoes` | Cria uma solicitação com status `ABERTA`. |
+| `GET /solicitacoes` | Lista solicitações; aceita `status` e `prioridade` como filtros opcionais combináveis. |
+| `GET /solicitacoes/:id` | Consulta uma solicitação. |
+| `PATCH /solicitacoes/:id` | Altera um ou mais campos do cadastro. |
+| `PATCH /solicitacoes/:id/status` | Avança o status, enviando `{"status":"EM_ANDAMENTO"}` ou `{"status":"CONCLUIDA"}`. |
+| `DELETE /solicitacoes/:id` | Exclui e retorna HTTP 204. |
+
+Exemplo de corpo para criação:
+
+```json
+{
+  "titulo": "Acesso à impressora",
+  "descricao": "Preciso de acesso à impressora do setor.",
+  "categoria": "Infraestrutura",
+  "prioridade": "MEDIA"
+}
+```
+
+Os campos textuais são obrigatórios e não podem conter apenas espaços. Prioridades: `BAIXA`, `MEDIA`, `ALTA`. Status: `ABERTA`, `EM_ANDAMENTO`, `CONCLUIDA`; só é permitido avançar nessa ordem. Erros de entrada retornam HTTP 400, solicitações inexistentes retornam 404 e alterações simultâneas de status podem retornar 409. O CORS aceita por padrão `http://localhost:3001`; altere `FRONTEND_ORIGIN` na configuração da API se necessário.
+
+`npm test -w @cofre/api` compila a API e executa os testes das regras de solicitações (após gerar o cliente Prisma).
