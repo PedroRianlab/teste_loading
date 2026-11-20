@@ -1,4 +1,4 @@
-﻿{
+{
     "name":  "@cofre/api",
     "version":  "0.1.0",
     "private":  true,
@@ -8,7 +8,8 @@
                     "start":  "nest start",
                     "start:prod":  "node dist/main",
                     "prisma:generate":  "prisma generate",
-                    "prisma:migrate":  "prisma migrate dev"
+                    "prisma:migrate":  "prisma migrate dev",
+                    "test":  "npm run build \u0026\u0026 node --test test/*.test.cjs"
                 },
     "dependencies":  {
                          "@nestjs/common":  "^11.2.7",
