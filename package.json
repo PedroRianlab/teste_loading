@@ -1,0 +1,18 @@
+{
+    "name":  "cofre-digital-exia",
+    "version":  "0.1.0",
+    "private":  true,
+    "workspaces":  [
+                       "back-end",
+                       "front-end"
+                   ],
+    "scripts":  {
+                    "dev:api":  "npm run start:dev -w @cofre/api",
+                    "dev:web":  "npm run dev -w @cofre/web",
+                    "build":  "npm run build --workspaces --if-present",
+                    "db:up":  "docker compose up -d",
+                    "db:down":  "docker compose down",
+                    "prisma:generate":  "npm run prisma:generate -w @cofre/api",
+                    "prisma:migrate":  "npm run prisma:migrate -w @cofre/api"
+                }
+}
