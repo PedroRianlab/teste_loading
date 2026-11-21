@@ -28,4 +28,16 @@ model Solicitacao {
   status       StatusSolicitacao @default(ABERTA)
   criadaEm     DateTime          @default(now())
   atualizadaEm DateTime          @updatedAt
+  historico    MudancaStatus[]
+}
+
+model MudancaStatus {
+  id            Int               @id @default(autoincrement())
+  solicitacaoId String
+  anterior      StatusSolicitacao
+  novo          StatusSolicitacao
+  alteradaEm    DateTime          @default(now())
+  solicitacao   Solicitacao       @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+
+  @@index([solicitacaoId])
 }

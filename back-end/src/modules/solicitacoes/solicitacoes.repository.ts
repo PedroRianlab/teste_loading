@@ -27,7 +27,10 @@ export class SolicitacoesRepository {
   }
 
   buscar(id: string) {
-    return this.prisma.solicitacao.findUnique({ where: { id } });
+    return this.prisma.solicitacao.findUnique({
+      where: { id },
+      include: { historico: { orderBy: { id: 'asc' } } },
+    });
   }
 
   atualizar(id: string, data: Prisma.SolicitacaoUpdateInput) {
@@ -35,9 +38,15 @@ export class SolicitacoesRepository {
   }
 
   alterarStatus(id: string, anterior: StatusSolicitacao, proximo: StatusSolicitacao) {
-    return this.prisma.solicitacao.updateMany({
-      where: { id, status: anterior },
-      data: { status: proximo },
+    return this.prisma.$transaction(async (tx) => {
+      const resultado = await tx.solicitacao.updateMany({
+        where: { id, status: anterior },
+        data: { status: proximo },
+      });
+      if (resultado.count) {
+        await tx.mudancaStatus.create({ data: { solicitacaoId: id, anterior, novo: proximo } });
+      }
+      return resultado;
     });
   }
 
