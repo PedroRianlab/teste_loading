@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, SessaoExpiradaError } from '@/lib/api';
 import { Aviso } from '@/ui/aviso';
 import { estados, type SolicitacaoDetalhada } from '../types/solicitacao';
 import { SeloPrioridade, SeloStatus } from './selos';
@@ -28,7 +28,7 @@ export function Detalhe({ id }: { id: string }) {
     try {
       atualizar(await api<SolicitacaoDetalhada>(rota + '/status', { metodo: 'PATCH', dados: { status: proximo } }));
     } catch (erro) {
-      setErro((erro as Error).message);
+      if (!(erro instanceof SessaoExpiradaError)) setErro((erro as Error).message);
     } finally {
       setOcupado(false);
     }
@@ -42,7 +42,7 @@ export function Detalhe({ id }: { id: string }) {
       await api(rota, { metodo: 'DELETE' });
       router.replace('/solicitacoes');
     } catch (erro) {
-      setErro((erro as Error).message);
+      if (!(erro instanceof SessaoExpiradaError)) setErro((erro as Error).message);
       setOcupado(false);
     }
   }

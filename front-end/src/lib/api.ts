@@ -1,6 +1,12 @@
-import { lerToken, salvarToken } from '@/features/auth/sessao';
+import { expirarSessao, lerToken } from '@/features/auth/sessao';
 
 const base = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+
+export class SessaoExpiradaError extends Error {
+  constructor() {
+    super('Sua sessão expirou. Entre novamente para continuar.');
+  }
+}
 
 export async function api<T>(rota: string, opcoes: {
   metodo?: string;
@@ -25,7 +31,10 @@ export async function api<T>(rota: string, opcoes: {
     throw new Error('Não foi possível conectar à API. Tente novamente.');
   }
   if (!resposta.ok) {
-    if (resposta.status === 401 && !opcoes.publico && token === lerToken()) salvarToken(null);
+    if (resposta.status === 401 && !opcoes.publico) {
+      expirarSessao(token);
+      throw new SessaoExpiradaError();
+    }
     const corpo = await resposta.json().catch(() => null);
     throw new Error(typeof corpo?.message === 'string' ? corpo.message : 'Não foi possível concluir a operação.');
   }

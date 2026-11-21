@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
-import { api } from '@/lib/api';
+import { api, SessaoExpiradaError } from '@/lib/api';
 import { Aviso } from '@/ui/aviso';
 import { lerFormulario } from '../schemas/formulario';
 import { prioridades, type Solicitacao } from '../types/solicitacao';
@@ -26,7 +26,7 @@ export function Formulario({ id }: { id?: string }) {
       const salvo = await api<Solicitacao>(id ? voltar : '/solicitacoes', { metodo: id ? 'PATCH' : 'POST', dados });
       router.push(`/solicitacoes/${salvo.id}`);
     } catch (erro) {
-      setErro((erro as Error).message);
+      if (!(erro instanceof SessaoExpiradaError)) setErro((erro as Error).message);
       setOcupado(false);
     }
   }

@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { useToken } from '@/features/auth/sessao';
+import { api, SessaoExpiradaError } from '@/lib/api';
 import { Aviso } from '@/ui/aviso';
 import { estados, prioridades, type Solicitacao } from '../types/solicitacao';
 import { SeloPrioridade, SeloStatus } from './selos';
 
 export function Lista() {
+  const token = useToken();
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState('');
   const [prioridade, setPrioridade] = useState('');
@@ -23,14 +25,19 @@ export function Lista() {
   const chave = rota + '#' + tentativa;
 
   useEffect(() => {
+    if (!token) return;
     const controle = new AbortController();
     const timer = window.setTimeout(() => {
       api<Solicitacao[]>(rota, { sinal: controle.signal })
         .then((itens) => { if (!controle.signal.aborted) setResultado({ chave, itens }); })
-        .catch((erro: Error) => { if (!controle.signal.aborted) setResultado({ chave, erro: erro.message }); });
+        .catch((erro: Error) => {
+          if (!controle.signal.aborted && !(erro instanceof SessaoExpiradaError)) {
+            setResultado({ chave, erro: erro.message });
+          }
+        });
     }, 180);
     return () => { window.clearTimeout(timer); controle.abort(); };
-  }, [rota, chave]);
+  }, [rota, chave, token]);
 
   const atual = resultado?.chave === chave ? resultado : undefined;
   return <>
