@@ -35,8 +35,9 @@ A API implementa cadastro, listagem, consulta, edição, exclusão e avanço de 
 | Método e rota | Operação |
 | --- | --- |
 | `POST /solicitacoes` | Cria uma solicitação com status `ABERTA`. |
-| `GET /solicitacoes` | Lista solicitações; aceita `status` e `prioridade` como filtros opcionais combináveis. |
-| `GET /solicitacoes/:id` | Consulta uma solicitação. |
+| `POST /auth/login` | Recebe `usuario` e `senha` e retorna um token válido por uma hora. |
+| `GET /solicitacoes` | Lista solicitações com filtros, busca textual e ordenação. |
+| `GET /solicitacoes/:id` | Consulta a solicitação e seu histórico de mudanças de status. |
 | `PATCH /solicitacoes/:id` | Altera um ou mais campos do cadastro. |
 | `PATCH /solicitacoes/:id/status` | Avança o status, enviando `{"status":"EM_ANDAMENTO"}` ou `{"status":"CONCLUIDA"}`. |
 | `DELETE /solicitacoes/:id` | Exclui e retorna HTTP 204. |
@@ -51,6 +52,10 @@ Exemplo de corpo para criação:
   "prioridade": "MEDIA"
 }
 ```
+
+Defina `AUTH_USUARIO` e `AUTH_SENHA` em `back-end/.env`. Envie o token retornado no cabeçalho `Authorization: Bearer <token>` em todas as rotas de solicitações. A API usa uma conta local sem perfis. Reiniciar a API invalida os tokens emitidos.
+
+A listagem aceita `status`, `prioridade` e `busca` juntos. A busca encontra trechos do título ou da descrição sem distinguir maiúsculas de minúsculas. Use `ordenarPor=criadaEm|prioridade|titulo` e `ordem=asc|desc`. O padrão é data de criação decrescente. O histórico registra as transições feitas após a migração e é removido junto com a solicitação.
 
 Os campos textuais são obrigatórios e não podem conter apenas espaços. Prioridades: `BAIXA`, `MEDIA`, `ALTA`. Status: `ABERTA`, `EM_ANDAMENTO`, `CONCLUIDA`; só é permitido avançar nessa ordem. Erros de entrada retornam HTTP 400, solicitações inexistentes retornam 404 e alterações simultâneas de status podem retornar 409. O CORS aceita por padrão `http://localhost:3001`; altere `FRONTEND_ORIGIN` na configuração da API se necessário.
 
