@@ -13,6 +13,11 @@ enum Prioridade {
   ALTA
 }
 
+model Usuario {
+  usuario   String @id
+  senhaHash String
+}
+
 enum StatusSolicitacao {
   ABERTA
   EM_ANDAMENTO
