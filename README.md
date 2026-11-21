@@ -13,7 +13,7 @@ A API oferece `GET /`, que retorna `{"status":"ok"}` sem verificar o banco.
 
 ## Desenvolvimento
 
-Requisitos: Node.js 20.9 ou superior, npm e Docker com Docker Compose.
+Requisitos: Node.js 20.11 ou superior, npm e Docker com Docker Compose.
 
 1. Copie `.env.example` para `.env` na raiz e `back-end/.env.example` para `back-end/.env`. Os valores são apenas para desenvolvimento local.
 2. Execute `npm install` na raiz.
@@ -23,7 +23,9 @@ Requisitos: Node.js 20.9 ou superior, npm e Docker com Docker Compose.
 
 A API responde em http://localhost:3000 e o front-end em http://localhost:3001. O PostgreSQL fica em localhost:5432. Execute `npm run build` para compilar os dois projetos e `npm run lint -w @cofre/web` para verificar o front-end.
 
-Abra [a tela de login](http://localhost:3001/login) e selecione **Criar uma conta** para começar. Após entrar, use a listagem para buscar, filtrar ou ordenar solicitações. O detalhe exibe o histórico e permite editar, excluir ou avançar o status. Se a API usar outro endereço, configure `NEXT_PUBLIC_API_URL` em `front-end/.env.local` com base no exemplo.
+Abra [a tela de login](http://localhost:3001/login) e selecione **Criar uma conta** para começar. Para instalações existentes, habilite o cadastro local com `AUTH_REGISTRO_ABERTO=true` em `back-end/.env` e reinicie a API. Após entrar, use a listagem para buscar, filtrar ou ordenar solicitações. O detalhe exibe o histórico e permite editar, excluir ou avançar o status. Se a API usar outro endereço, configure `NEXT_PUBLIC_API_URL` em `front-end/.env.local` com base no exemplo.
+
+Se a sessão expirar durante um cadastro ou uma edição, entre novamente com a mesma conta na própria tela. O formulário é mantido enquanto a página permanece aberta.
 
 `npm run db:down` para o contêiner sem remover o volume de dados. Alterações nas credenciais iniciais do PostgreSQL não alteram um volume já inicializado.
 
@@ -59,6 +61,8 @@ Exemplo de corpo para criação:
 ```
 
 O registro salva o usuário no PostgreSQL com um hash da senha. A conta de ambiente, se configurada por `AUTH_USUARIO` e `AUTH_SENHA` em `back-end/.env`, continua disponível. Todas as contas autenticadas têm acesso às mesmas solicitações. Envie o token no cabeçalho `Authorization: Bearer <token>` para acessar essas rotas diretamente. Reiniciar a API invalida os tokens emitidos.
+
+A API escuta em `127.0.0.1` por padrão. Em ambientes que precisam escutar em outro endereço, configure `API_HOST` e deixe `AUTH_REGISTRO_ABERTO=false` para manter o cadastro público fechado. Sem essa variável, o cadastro também fica fechado e responde com HTTP 403. Por IP, a API aceita até dez tentativas de login e cinco de cadastro por minuto, contando as duas rotas separadamente. Após o limite, retorna HTTP 429.
 
 A listagem aceita `status`, `prioridade` e `busca` juntos. A busca encontra trechos do título ou da descrição sem distinguir maiúsculas de minúsculas. Use `ordenarPor=criadaEm|prioridade|titulo` e `ordem=asc|desc`. O padrão é data de criação decrescente. O histórico registra as transições feitas após a migração e é removido junto com a solicitação.
 
