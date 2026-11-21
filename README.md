@@ -30,6 +30,8 @@ Este projeto contou com auxílio de inteligência artificial na organização in
 
 ## API de solicitações
 
+Com a API rodando, abra [Swagger UI](http://localhost:3000/docs) para explorar e executar as rotas. A especificação OpenAPI está em [JSON](http://localhost:3000/docs-json). Para testar as solicitações, execute `POST /auth/login` e cole o token em **Authorize**.
+
 A API implementa cadastro, listagem, consulta, edição, exclusão e avanço de status. A interface ainda não está integrada. Aplique a migração versionada antes de iniciar a API: `npm run prisma:migrate -w @cofre/api` (ou `npx prisma migrate deploy` dentro de `back-end` para aplicar sem criar migrações).
 
 | Método e rota | Operação |
