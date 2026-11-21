@@ -1,9 +1,12 @@
-import { Body, Controller, Header, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Header, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
 @ApiTags('Autenticação')
+@UseGuards(ThrottlerGuard)
+@ApiResponse({ status: 429, description: 'Limite de tentativas atingido. Aguarde um minuto.' })
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
@@ -25,6 +28,7 @@ export class AuthController {
   }
 
   @Post('registro')
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiBody({ schema: {
     type: 'object',
     required: ['usuario', 'senha'],
@@ -35,6 +39,7 @@ export class AuthController {
   } })
   @ApiResponse({ status: 201, description: 'Conta criada.' })
   @ApiResponse({ status: 400, description: 'Usuário ou senha fora do formato.' })
+  @ApiResponse({ status: 403, description: 'Criação de contas desativada.' })
   @ApiResponse({ status: 409, description: 'Nome de usuário em uso.' })
   registrar(@Body() dados: { usuario?: unknown; senha?: unknown } | null) {
     return this.auth.registrar(dados?.usuario, dados?.senha);

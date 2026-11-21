@@ -13,6 +13,6 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   SwaggerModule.setup('docs', app, () => SwaggerModule.createDocument(app, openApi));
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3000, process.env.API_HOST ?? '127.0.0.1');
 }
 void bootstrap();

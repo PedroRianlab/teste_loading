@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { createHash, createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
@@ -26,6 +26,9 @@ export class AuthService {
   constructor(private readonly config: ConfigService, private readonly repository: AuthRepository) {}
 
   async registrar(usuario: unknown, senha: unknown) {
+    if (this.config.get('AUTH_REGISTRO_ABERTO') !== 'true') {
+      throw new ForbiddenException('A criação de contas está desativada neste ambiente.');
+    }
     const nome = typeof usuario === 'string' ? usuario.trim().toLowerCase() : '';
     if (!identificadorValido(nome)) {
       throw new BadRequestException('Informe um e-mail válido ou um usuário de 3 a 32 caracteres com letras, números, pontos, hífens ou sublinhados.');
