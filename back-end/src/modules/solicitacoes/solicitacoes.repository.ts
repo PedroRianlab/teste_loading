@@ -10,6 +10,10 @@ export type OpcoesListagem = {
   ordem?: 'asc' | 'desc';
 };
 
+const incluirHistorico = {
+  historico: { orderBy: { id: 'asc' } },
+} satisfies Prisma.SolicitacaoInclude;
+
 @Injectable()
 export class SolicitacoesRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -29,12 +33,17 @@ export class SolicitacoesRepository {
   buscar(id: string) {
     return this.prisma.solicitacao.findUnique({
       where: { id },
-      include: { historico: { orderBy: { id: 'asc' } } },
+      include: incluirHistorico,
     });
   }
 
   atualizar(id: string, data: Prisma.SolicitacaoUpdateInput) {
-    return this.prisma.solicitacao.updateMany({ where: { id }, data });
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.solicitacao.updateMany({ where: { id }, data });
+      if (!count) return null;
+
+      return tx.solicitacao.findUniqueOrThrow({ where: { id }, include: incluirHistorico });
+    });
   }
 
   alterarStatus(id: string, anterior: StatusSolicitacao, proximo: StatusSolicitacao) {
@@ -43,10 +52,10 @@ export class SolicitacoesRepository {
         where: { id, status: anterior },
         data: { status: proximo },
       });
-      if (resultado.count) {
-        await tx.mudancaStatus.create({ data: { solicitacaoId: id, anterior, novo: proximo } });
-      }
-      return resultado;
+      if (!resultado.count) return null;
+
+      await tx.mudancaStatus.create({ data: { solicitacaoId: id, anterior, novo: proximo } });
+      return tx.solicitacao.findUniqueOrThrow({ where: { id }, include: incluirHistorico });
     });
   }
 

@@ -10,7 +10,7 @@ export class SolicitacoesService {
 
   private objeto(valor: unknown): Record<string, unknown> {
     if (!valor || typeof valor !== 'object' || Array.isArray(valor)) {
-      throw new BadRequestException('Envie um objeto JSON v?lido.');
+      throw new BadRequestException('Envie um objeto JSON válido.');
     }
     return valor as Record<string, unknown>;
   }
@@ -19,7 +19,7 @@ export class SolicitacoesService {
     const dados = this.objeto(valor);
     const permitidos = ['titulo', 'descricao', 'categoria', 'prioridade'];
     if (Object.keys(dados).some((chave) => !permitidos.includes(chave))) {
-      throw new BadRequestException('H? campos n?o permitidos na solicita??o.');
+      throw new BadRequestException('Há campos não permitidos na solicitação.');
     }
     if (parcial && Object.keys(dados).length === 0) {
       throw new BadRequestException('Informe ao menos um campo para atualizar.');
@@ -29,7 +29,7 @@ export class SolicitacoesService {
       if (parcial && !(campo in dados)) continue;
       const texto = dados[campo];
       if (typeof texto !== 'string' || !texto.trim()) {
-        throw new BadRequestException(`O campo ${campo} ? obrigat?rio e n?o pode estar vazio.`);
+        throw new BadRequestException(`O campo ${campo} é obrigatório e não pode estar vazio.`);
       }
       resultado[campo] = texto.trim();
     }
@@ -72,21 +72,21 @@ export class SolicitacoesService {
 
   async buscar(id: string) {
     const solicitacao = await this.repository.buscar(id);
-    if (!solicitacao) throw new NotFoundException('Solicita??o n?o encontrada.');
+    if (!solicitacao) throw new NotFoundException('Solicitação não encontrada.');
     return solicitacao;
   }
 
   async atualizar(id: string, dados: unknown) {
     const atualizacao = this.validarDados(dados, true);
     const resultado = await this.repository.atualizar(id, atualizacao);
-    if (!resultado.count) throw new NotFoundException('Solicita??o n?o encontrada.');
-    return this.buscar(id);
+    if (!resultado) throw new NotFoundException('Solicitação não encontrada.');
+    return resultado;
   }
 
   async alterarStatus(id: string, corpo: unknown) {
     const dados = this.objeto(corpo);
     if (Object.keys(dados).length !== 1 || !Object.values(StatusSolicitacao).includes(dados.status as StatusSolicitacao)) {
-      throw new BadRequestException('Informe apenas um status v?lido: ABERTA, EM_ANDAMENTO ou CONCLUIDA.');
+      throw new BadRequestException('Informe apenas um status válido: ABERTA, EM_ANDAMENTO ou CONCLUIDA.');
     }
     const atual = await this.buscar(id);
     const proximo = dados.status as StatusSolicitacao;
@@ -95,15 +95,15 @@ export class SolicitacoesService {
       EM_ANDAMENTO: StatusSolicitacao.CONCLUIDA,
     };
     if (transicoes[atual.status] !== proximo) {
-      throw new BadRequestException('Transi??o inv?lida. O fluxo ? ABERTA ? EM_ANDAMENTO ? CONCLUIDA.');
+      throw new BadRequestException('Transição inválida. O fluxo é ABERTA → EM_ANDAMENTO → CONCLUIDA.');
     }
     const resultado = await this.repository.alterarStatus(id, atual.status, proximo);
-    if (!resultado.count) throw new ConflictException('A solicita??o foi alterada ou removida. Consulte-a novamente.');
-    return this.buscar(id);
+    if (!resultado) throw new ConflictException('A solicitação foi alterada ou removida. Consulte-a novamente.');
+    return resultado;
   }
 
   async excluir(id: string) {
     const resultado = await this.repository.excluir(id);
-    if (!resultado.count) throw new NotFoundException('Solicita??o n?o encontrada.');
+    if (!resultado.count) throw new NotFoundException('Solicitação não encontrada.');
   }
 }

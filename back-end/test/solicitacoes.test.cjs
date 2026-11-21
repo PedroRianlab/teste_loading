@@ -17,9 +17,9 @@ test('status respeita a sequência e detecta alteração simultânea', async () 
   const repo = {
     buscar: async () => ({ id: '1', status }),
     alterarStatus: async (_id, anterior, proximo) => {
-      if (status !== anterior) return { count: 0 };
+      if (status !== anterior) return null;
       status = proximo;
-      return { count: 1 };
+      return { id: '1', status };
     },
   };
   const service = new SolicitacoesService(repo);
@@ -28,7 +28,7 @@ test('status respeita a sequência e detecta alteração simultânea', async () 
   assert.equal((await service.alterarStatus('1', { status: 'CONCLUIDA' })).status, 'CONCLUIDA');
   await assert.rejects(service.alterarStatus('1', { status: 'ABERTA' }), BadRequestException);
   status = 'ABERTA';
-  repo.alterarStatus = async () => ({ count: 0 });
+  repo.alterarStatus = async () => null;
   await assert.rejects(service.alterarStatus('1', { status: 'EM_ANDAMENTO' }), ConflictException);
 });
 
