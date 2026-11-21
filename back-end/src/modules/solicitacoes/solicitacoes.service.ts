@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prioridade, StatusSolicitacao } from '@prisma/client';
-import { SolicitacoesRepository } from './solicitacoes.repository';
+import { OpcoesListagem, SolicitacoesRepository } from './solicitacoes.repository';
 
 type DadosSolicitacao = { titulo: string; descricao: string; categoria: string; prioridade: Prioridade };
 
@@ -47,8 +47,8 @@ export class SolicitacoesService {
   }
 
   listar(filtros: Record<string, unknown>) {
-    if (Object.keys(filtros).some((campo) => !['status', 'prioridade'].includes(campo))) {
-      throw new BadRequestException('Filtros permitidos: status e prioridade.');
+    if (Object.keys(filtros).some((campo) => !['status', 'prioridade', 'busca', 'ordenarPor', 'ordem'].includes(campo))) {
+      throw new BadRequestException('Parâmetros permitidos: status, prioridade, busca, ordenarPor e ordem.');
     }
     if (filtros.status !== undefined && !Object.values(StatusSolicitacao).includes(filtros.status as StatusSolicitacao)) {
       throw new BadRequestException('Status deve ser ABERTA, EM_ANDAMENTO ou CONCLUIDA.');
@@ -56,7 +56,18 @@ export class SolicitacoesService {
     if (filtros.prioridade !== undefined && !Object.values(Prioridade).includes(filtros.prioridade as Prioridade)) {
       throw new BadRequestException('Prioridade deve ser BAIXA, MEDIA ou ALTA.');
     }
-    return this.repository.listar(filtros as { status?: StatusSolicitacao; prioridade?: Prioridade });
+    const { busca, ordenarPor, ordem } = filtros;
+    if (busca !== undefined && (typeof busca !== 'string' || busca.length > 200 || busca.includes('\0'))) {
+      throw new BadRequestException('Busca deve ser um texto de até 200 caracteres.');
+    }
+    if (ordenarPor !== undefined && ordenarPor !== 'criadaEm' && ordenarPor !== 'prioridade' && ordenarPor !== 'titulo') {
+      throw new BadRequestException('Ordene por criadaEm, prioridade ou titulo.');
+    }
+    if (ordem !== undefined && ordem !== 'asc' && ordem !== 'desc') {
+      throw new BadRequestException('Ordem deve ser asc ou desc.');
+    }
+    const opcoes = filtros as OpcoesListagem;
+    return this.repository.listar(busca === undefined ? opcoes : { ...opcoes, busca: busca.trim() });
   }
 
   async buscar(id: string) {

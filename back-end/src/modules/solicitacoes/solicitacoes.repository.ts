@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { Prioridade, Prisma, StatusSolicitacao } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
+export type OpcoesListagem = {
+  status?: StatusSolicitacao;
+  prioridade?: Prioridade;
+  busca?: string;
+  ordenarPor?: 'criadaEm' | 'prioridade' | 'titulo';
+  ordem?: 'asc' | 'desc';
+};
+
 @Injectable()
 export class SolicitacoesRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -10,8 +18,12 @@ export class SolicitacoesRepository {
     return this.prisma.solicitacao.create({ data });
   }
 
-  listar(filtros: { status?: StatusSolicitacao; prioridade?: Prioridade }) {
-    return this.prisma.solicitacao.findMany({ where: filtros, orderBy: { criadaEm: 'desc' } });
+  listar({ busca, ordenarPor = 'criadaEm', ordem = 'desc', ...filtros }: OpcoesListagem) {
+    const texto = busca ? { contains: busca.replace(/[\\%_]/g, '\\$&'), mode: 'insensitive' as const } : undefined;
+    return this.prisma.solicitacao.findMany({
+      where: { ...filtros, OR: texto ? [{ titulo: texto }, { descricao: texto }] : undefined },
+      orderBy: [{ [ordenarPor]: ordem }, { id: 'asc' }],
+    });
   }
 
   buscar(id: string) {
