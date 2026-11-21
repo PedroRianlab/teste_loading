@@ -1,71 +1,182 @@
 # Central de Solicitações
 
-Monorepositório npm com Next.js, API NestJS e PostgreSQL. Os requisitos estão em [docs/Loading_Full_Stack.pdf](docs/Loading_Full_Stack.pdf).
+Aplicação para registrar e acompanhar solicitações internas, da abertura à conclusão. A interface permite cadastrar, consultar, buscar, filtrar e editar solicitações, além de acompanhar o histórico de status.
 
-## Estrutura
+## Executando localmente
 
-- `front-end/src/app`: rotas; `front-end/src/features`: funcionalidades; `front-end/src/ui`: componentes compartilhados.
-- `back-end/src/modules`: módulos da API, com controller, service e repository para módulos que persistem dados.
-- `back-end/prisma`: esquema do banco e futuras migrações.
-- `compose.yaml`: PostgreSQL para desenvolvimento.
+### Pré-requisitos
 
-A API oferece `GET /`, que retorna `{"status":"ok"}` sem verificar o banco.
+- Node.js 20.11 ou superior.
+- npm e Git.
+- Docker Desktop ou Docker Engine com Docker Compose.
 
-## Desenvolvimento
+O PostgreSQL roda no Docker. A API NestJS e o frontend Next.js rodam diretamente na máquina.
 
-Requisitos: Node.js 20.11 ou superior, npm e Docker com Docker Compose.
+### 1. Clonar e configurar
 
-1. Copie `.env.example` para `.env` na raiz e `back-end/.env.example` para `back-end/.env`. Os valores são apenas para desenvolvimento local.
-2. Execute `npm install` na raiz.
-3. Inicie o banco com `npm run db:up`.
-4. Gere o cliente Prisma com `npm run prisma:generate` e aplique as migrações com `npm run prisma:migrate`.
-5. Em terminais separados, execute `npm run dev:api` e `npm run dev:web`.
+No PowerShell:
 
-A API responde em http://localhost:3000 e o front-end em http://localhost:3001. O PostgreSQL fica em localhost:5432. Execute `npm run build` para compilar os dois projetos e `npm run lint -w @cofre/web` para verificar o front-end.
-
-Abra [a tela de login](http://localhost:3001/login) e selecione **Criar uma conta** para começar. Para instalações existentes, habilite o cadastro local com `AUTH_REGISTRO_ABERTO=true` em `back-end/.env` e reinicie a API. Após entrar, use a listagem para buscar, filtrar ou ordenar solicitações. O detalhe exibe o histórico e permite editar, excluir ou avançar o status. Se a API usar outro endereço, configure `NEXT_PUBLIC_API_URL` em `front-end/.env.local` com base no exemplo.
-
-Se a sessão expirar durante um cadastro ou uma edição, entre novamente com a mesma conta na própria tela. O formulário é mantido enquanto a página permanece aberta.
-
-`npm run db:down` para o contêiner sem remover o volume de dados. Alterações nas credenciais iniciais do PostgreSQL não alteram um volume já inicializado.
-
-Este projeto contou com auxílio de inteligência artificial na organização inicial e documentação.
-
-
-## API de solicitações
-
-Com a API rodando, abra [Swagger UI](http://localhost:3000/docs) para explorar e executar as rotas. A especificação OpenAPI está em [JSON](http://localhost:3000/docs-json). Para testar as solicitações, execute `POST /auth/login` e cole o token em **Authorize**.
-
-A API implementa cadastro, listagem, consulta, edição, exclusão e avanço de status. Aplique as migrações antes de iniciar a API. Dentro de `back-end`, `npx prisma migrate deploy` aplica as migrações existentes sem criar novas.
-
-| Método e rota | Operação |
-| --- | --- |
-| `POST /solicitacoes` | Cria uma solicitação com status `ABERTA`. |
-| `POST /auth/login` | Recebe `usuario` e `senha` e retorna um token válido por uma hora. |
-| `POST /auth/registro` | Cria uma conta local com nome de usuário ou e-mail no campo `usuario`, além da `senha`. |
-| `GET /solicitacoes` | Lista solicitações com filtros, busca textual e ordenação. |
-| `GET /solicitacoes/:id` | Consulta a solicitação e seu histórico de mudanças de status. |
-| `PATCH /solicitacoes/:id` | Altera um ou mais campos do cadastro. |
-| `PATCH /solicitacoes/:id/status` | Avança o status, enviando `{"status":"EM_ANDAMENTO"}` ou `{"status":"CONCLUIDA"}`. |
-| `DELETE /solicitacoes/:id` | Exclui e retorna HTTP 204. |
-
-Exemplo de corpo para criação:
-
-```json
-{
-  "titulo": "Acesso à impressora",
-  "descricao": "Preciso de acesso à impressora do setor.",
-  "categoria": "Infraestrutura",
-  "prioridade": "MEDIA"
-}
+```powershell
+git clone https://github.com/PedroRianlab/teste_loading.git
+Set-Location teste_loading
 ```
 
-O registro salva o usuário no PostgreSQL com um hash da senha. A conta de ambiente, se configurada por `AUTH_USUARIO` e `AUTH_SENHA` em `back-end/.env`, continua disponível. Todas as contas autenticadas têm acesso às mesmas solicitações. Envie o token no cabeçalho `Authorization: Bearer <token>` para acessar essas rotas diretamente. Reiniciar a API invalida os tokens emitidos.
+Se estiver avaliando o PR antes do merge, execute `git switch fix/revisao-frontend-backend`.
 
-A API escuta em `127.0.0.1` por padrão. Em ambientes que precisam escutar em outro endereço, configure `API_HOST` e deixe `AUTH_REGISTRO_ABERTO=false` para manter o cadastro público fechado. Sem essa variável, o cadastro também fica fechado e responde com HTTP 403. Por IP, a API aceita até dez tentativas de login e cinco de cadastro por minuto, contando as duas rotas separadamente. Após o limite, retorna HTTP 429.
+Copie os arquivos de configuração na primeira execução:
 
-A listagem aceita `status`, `prioridade` e `busca` juntos. A busca encontra trechos do título ou da descrição sem distinguir maiúsculas de minúsculas. Use `ordenarPor=criadaEm|prioridade|titulo` e `ordem=asc|desc`. O padrão é data de criação decrescente. O histórico registra as transições feitas após a migração e é removido junto com a solicitação.
+```powershell
+Copy-Item .env.example .env
+Copy-Item back-end/.env.example back-end/.env
+```
 
-Os campos textuais são obrigatórios e não podem conter apenas espaços. Prioridades: `BAIXA`, `MEDIA`, `ALTA`. Status: `ABERTA`, `EM_ANDAMENTO`, `CONCLUIDA`; só é permitido avançar nessa ordem. Erros de entrada retornam HTTP 400, solicitações inexistentes retornam 404 e alterações simultâneas de status podem retornar 409. O CORS aceita por padrão `http://localhost:3001`; altere `FRONTEND_ORIGIN` na configuração da API se necessário.
+Os exemplos já funcionam no ambiente local. Se mudar as credenciais ou a porta do banco no `.env` da raiz, atualize também a `DATABASE_URL` em `back-end/.env`.
 
-`npm test -w @cofre/api` compila a API e executa os testes das regras de solicitações (após gerar o cliente Prisma).
+### 2. Instalar as dependências e preparar o banco
+
+Na raiz do repositório, com o Docker iniciado:
+
+```powershell
+npm.cmd install
+npm.cmd run db:up
+npm.cmd run prisma:generate
+
+Push-Location back-end
+npx.cmd prisma migrate deploy
+Pop-Location
+```
+
+O `npm install` instala as dependências do backend e do frontend. O PostgreSQL fica disponível em `localhost:5432`. Para parar o banco preservando os dados, execute `npm.cmd run db:down` na raiz.
+
+### 3. Iniciar a API e o frontend
+
+Abra dois terminais na raiz do projeto:
+
+```powershell
+# Terminal 1
+npm.cmd run dev:api
+```
+
+```powershell
+# Terminal 2
+npm.cmd run dev:web
+```
+
+| Serviço | Endereço |
+| --- | --- |
+| Interface | [http://localhost:3001/login](http://localhost:3001/login) |
+| API | [http://localhost:3000](http://localhost:3000) |
+| Swagger | [http://localhost:3000/docs](http://localhost:3000/docs) |
+| OpenAPI em JSON | [http://localhost:3000/docs-json](http://localhost:3000/docs-json) |
+
+### 4. Testar o fluxo
+
+1. Abra a interface e clique em **Criar uma conta**. Use um nome de usuário ou e-mail e uma senha de pelo menos oito caracteres.
+2. Entre e cadastre uma solicitação com título, descrição, categoria e prioridade. Ela começa como **Aberta**.
+3. Abra o detalhe, clique em **Iniciar atendimento** e depois em **Concluir solicitação**. Confira as duas mudanças no histórico.
+
+### Variáveis de ambiente
+
+| Arquivo | Variável | Finalidade |
+| --- | --- | --- |
+| `.env` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_PORT` | Configuração do PostgreSQL no Docker. A porta padrão é `5432`. |
+| `back-end/.env` | `DATABASE_URL` | Conexão do Prisma com o banco. |
+| `back-end/.env` | `PORT`, `API_HOST` | Porta e endereço da API. Os padrões são `3000` e `127.0.0.1`. |
+| `back-end/.env` | `FRONTEND_ORIGIN` | Origem aceita pelo CORS. O padrão é `http://localhost:3001`. |
+| `back-end/.env` | `AUTH_REGISTRO_ABERTO` | Use `true` para habilitar o cadastro. O exemplo local já o habilita. |
+| `back-end/.env` | `AUTH_USUARIO`, `AUTH_SENHA` | Credenciais de uma conta opcional definida no ambiente. |
+| `front-end/.env.local` | `NEXT_PUBLIC_API_URL` | Endereço da API usado pela interface. Configure se precisar mudar o padrão `http://localhost:3000`. |
+
+## O que está pronto
+
+### Solicitações
+
+- Cadastro, listagem, detalhe, edição e exclusão com confirmação.
+- Busca por trecho do título ou da descrição, sem diferenciar maiúsculas de minúsculas.
+- Filtros combináveis por status e prioridade. Ordenação por data de criação, prioridade ou título.
+- Fluxo **Aberta → Em andamento → Concluída**, validado pela API. O status só muda pela rota de transição.
+- Histórico com data, status anterior e novo status. A transição e a entrada no histórico são gravadas na mesma transação.
+
+### Autenticação e interface
+
+- Login e registro na mesma tela, com nome de usuário ou e-mail.
+- Senhas protegidas com hash scrypt e sal aleatório. As rotas de solicitações exigem token Bearer.
+- Quando a sessão expira, a interface pede login com a mesma conta e preserva o rascunho do formulário enquanto a página estiver aberta.
+- Interface responsiva com estados de carregamento, erro e lista vazia. Cadastro e edição reutilizam o mesmo formulário.
+
+Os requisitos originais estão no [documento do desafio](docs/Loading_Full_Stack.pdf).
+
+## Como o projeto funciona
+
+O frontend Next.js envia o token no cabeçalho `Authorization`. Na API NestJS, o controller recebe a requisição, o service aplica as regras de negócio e o repository acessa o PostgreSQL por meio do Prisma. Três migrações versionadas criam as tabelas de solicitações, histórico e contas.
+
+| Área | Tecnologias |
+| --- | --- |
+| Frontend | Next.js 16 com App Router, React 19, TypeScript e CSS |
+| Backend | NestJS 11, TypeScript, Swagger e Throttler |
+| Persistência | PostgreSQL 16 e Prisma 6 |
+| Ambiente local | npm workspaces e Docker Compose |
+| Testes da API | `node:test` |
+
+## API
+
+| Método | Rota | Acesso | Operação |
+| --- | --- | --- | --- |
+| `GET` | `/` | Público | Verifica se a API responde, sem consultar o banco. |
+| `POST` | `/auth/registro` | Público quando habilitado | Cria uma conta. |
+| `POST` | `/auth/login` | Público | Autentica e retorna o token. |
+| `GET` | `/solicitacoes` | Bearer | Lista com busca, filtros e ordenação. |
+| `POST` | `/solicitacoes` | Bearer | Cria uma solicitação com status `ABERTA`. |
+| `GET` | `/solicitacoes/:id` | Bearer | Retorna a solicitação e o histórico. |
+| `PATCH` | `/solicitacoes/:id` | Bearer | Edita os campos de cadastro. |
+| `PATCH` | `/solicitacoes/:id/status` | Bearer | Avança o status em uma etapa. |
+| `DELETE` | `/solicitacoes/:id` | Bearer | Exclui a solicitação e o histórico. Retorna HTTP 204. |
+
+A listagem aceita `busca`, `status`, `prioridade`, `ordenarPor` e `ordem`. Por exemplo, `GET /solicitacoes?status=ABERTA&prioridade=ALTA&ordenarPor=criadaEm&ordem=desc`.
+
+As prioridades são `BAIXA`, `MEDIA` e `ALTA`. Os status são `ABERTA`, `EM_ANDAMENTO` e `CONCLUIDA`.
+
+### Teste manual pelo Swagger
+
+1. Abra `http://localhost:3000/docs` e faça login em `POST /auth/login`.
+2. Copie o campo `token` da resposta e cole seu valor em **Authorize**.
+3. Use as rotas de solicitações para testar cadastro, filtros e transições de status.
+
+## Segurança e decisões
+
+- Todas as contas autenticadas acessam a mesma central. O projeto tem um único nível de acesso.
+- O token fica no `sessionStorage` da aba e expira em uma hora. Sair remove o token localmente. Reiniciar a API invalida os tokens emitidos.
+- A API escuta na máquina local por padrão. O cadastro público exige configuração explícita. Quando desabilitado, retorna HTTP 403.
+- As rotas de autenticação têm limites separados por IP de 10 tentativas de login e 5 de cadastro por minuto. O excesso retorna HTTP 429. Os contadores ficam em memória por instância.
+- O e-mail é usado como identificador de acesso, sem verificação da caixa postal. O histórico registra mudanças feitas após a migração e é excluído junto com a solicitação.
+
+## Testes e qualidade
+
+Na raiz, após gerar o cliente Prisma:
+
+```powershell
+npm.cmd test -w ./back-end
+npm.cmd run lint -w ./front-end
+npm.cmd run build
+```
+
+Os testes da API cobrem validação de campos, filtros e transições de status. No navegador foram conferidos registro, login, CRUD e recuperação do rascunho após expiração da sessão. A persistência foi verificada após reiniciar o PostgreSQL.
+
+## Estrutura do repositório
+
+```text
+teste_loading/
+├── back-end/
+│   ├── prisma/          # Esquema e migrações
+│   ├── src/modules/     # Autenticação, solicitações e saúde
+│   └── test/            # Testes da API
+├── front-end/
+│   └── src/
+│       ├── app/         # Rotas do App Router
+│       ├── features/    # Autenticação e solicitações
+│       ├── lib/         # Cliente HTTP
+│       └── ui/          # Componentes compartilhados
+├── docs/               # Documento do desafio
+├── compose.yaml        # PostgreSQL local
+└── README.md
+```
