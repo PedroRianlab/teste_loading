@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,3 +7,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Prioridade {
+  BAIXA
+  MEDIA
+  ALTA
+}
+
+model Usuario {
+  usuario   String @id
+  senhaHash String
+}
+
+enum StatusSolicitacao {
+  ABERTA
+  EM_ANDAMENTO
+  CONCLUIDA
+}
+
+model Solicitacao {
+  id           String            @id @default(uuid())
+  titulo       String
+  descricao    String
+  categoria    String
+  prioridade   Prioridade
+  status       StatusSolicitacao @default(ABERTA)
+  criadaEm     DateTime          @default(now())
+  atualizadaEm DateTime          @updatedAt
+  historico    MudancaStatus[]
+}
+
+model MudancaStatus {
+  id            Int               @id @default(autoincrement())
+  solicitacaoId String
+  anterior      StatusSolicitacao
+  novo          StatusSolicitacao
+  alteradaEm    DateTime          @default(now())
+  solicitacao   Solicitacao       @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+
+  @@index([solicitacaoId])
+}
